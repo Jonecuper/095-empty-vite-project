@@ -1,0 +1,189 @@
+# empty-vite-project
+
+## Описание
+
+Минималистичный шаблон проекта на Vite для быстрого старта новых проектов на vanilla js. Включает примеры работы с переменными среды, кастомные скрипты сборки, публикацию через SFTP, генерацию PHP-файла и расширяемую структуру директорий.
+
+---
+
+## Структура проекта
+
+```
+.
+├── .env                      # Переменные среды для сборки, разработки и публикации
+├── index.html                # Главный HTML-файл, точка входа
+├── package.json              # Описание зависимостей и npm-скриптов
+├── vite.config.js            # Конфигурация Vite с поддержкой .env
+├── generate-index-php.js     # Скрипт генерации index.php из index.html
+├── upload-dist-sftp.js       # Скрипт публикации dist/ на сервер по SFTP
+├── frameworks/               # Внешние библиотеки и стили
+│   ├── something.js
+│   ├── something-another.js
+│   └── css/
+│       └── something.css
+├── src/                      # Исходный код приложения
+│   ├── main.js               # Главный JS-файл, точка входа
+│   ├── counter.js            # Пример компонента
+│   ├── css/
+│   │   └── style.css
+│   ├── fonts/
+│   └── images/
+└── dist/                     # Сборка (создаётся автоматически)
+```
+
+---
+
+## Работа с переменными среды (.env)
+
+Файл `.env` содержит все ключевые параметры для сборки, разработки и публикации.**Важно:**
+
+- Для доступа к переменным в клиентском коде используйте только переменные с префиксом `VITE_` через `import.meta.env`.
+- В серверных/скриптовых файлах (`generate-index-php.js`, `upload-dist-sftp.js`, `vite.config.js`) доступны все переменные через `process.env`.
+
+### Пример содержимого `.env`:
+
+```ini
+# порт сервера разработки
+DEV_SERVER_PORT=5501
+
+# базовый путь для сервера разработки
+BASE_DEV_SERVER_PATH=/local/components/empty-vite-project/dist/
+
+# сборка проекта
+ROOT_DIR=. # корень проекта
+BUILD_DIR=dist # папка для сборки
+IS_CLEAR_DIR_BEFORE_BUILD=true # очищать папку сборки перед сборкой
+PUBLIC_DIR=frameworks # файлы из этой папки не будут упакованны
+START_ENTRY_BUILD_FILE=./index.html # начинать сборку отсюда
+
+# переменные среды для публикации по SFTP
+SFTP_HOST=example.com
+SFTP_PORT=22
+SFTP_USER=your_username
+SFTP_PASS=your_password
+SFTP_REMOTE_PATH=/path/on/server
+
+# перменные среды для настройки очистки и генерации PHP-файла
+CLEAR_DEV_SCRIPTS=true # удалить dev-скрипты
+CREATE_PHP_FILE=true # создать index.php
+APPLICATION_ENTRY_POINT_HTML_ID=empty-vite-project # id HTML элемента точки входа в приложение
+VITE_APPLICATION_ENTRY_POINT_HTML_ID=empty-vite-project # id HTML элемента точки входа в приложение Vite
+```
+
+---
+
+## Основные npm-скрипты (`package.json`)
+
+- `dev` — запуск dev-сервера Vite
+- `build` — сборка проекта и генерация index.php
+- `preview` — предпросмотр production-сборки
+- `publish:sftp` — публикация содержимого dist/ на сервер по SFTP
+
+---
+
+## Исключение кода из финального бандла (build-remove)
+
+В проекте реализован удобный механизм для временного подключения скриптов и стилей, которые не должны попадать в production-сборку. Для этого используются специальные HTML-комментарии:
+
+```
+<!-- build-remove-start -->
+  <!-- то что ниже не будет включено в бандл -->
+  <script>
+    /**
+    * Добавляет указанные CSS-файлы в элемент <head> документа.
+    * @param {...string} urls - Список URL-адресов CSS-файлов для подключения.
+    * @return {void}
+    */
+    function includeCSS(...urls) {
+      urls.forEach(url => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = url;
+        document.head.appendChild(link);
+      });
+    }
+
+    /**
+     * Добавляет указанные JavaScript-файлы в элемент <head> документа.
+     * @param {...string} urls - Список URL-адресов JS-файлов для подключения.
+     * @return {void}
+     */
+    function includeJS(...urls) {
+      urls.forEach(url => {
+        const script = document.createElement('script');
+        script.src = url;
+        document.head.appendChild(script);
+      });
+    }
+
+    includeCSS('./frameworks/css/something.css');
+    includeJS('./frameworks/something.js');
+  </script>
+<!-- build-remove-end -->
+```
+
+### Как это работает
+
+- Всё, что находится между `<!-- build-remove-start -->` и `<!-- build-remove-end -->`, будет автоматически удалено из итогового production-бандла при сборке (`npm run build`).
+- Это реализовано в скрипте [`generate-index-php.js`](generate-index-php.js), который после сборки очищает `dist/index.html` от временных/разработческих скриптов и стилей и создаёт файл index.php для подключения на промышленном сервере (модифицируйте эту генерацию для иного типа выходного итогового файла или отключите, если не нужна).
+- Такой подход позволяет удобно подключать сторонние библиотеки, тестовые скрипты, мок-данные и т.п. только на этапе разработки, не опасаясь их попадания в production.
+
+### Применение
+
+1. Поместите любой временный код (например, подключения стилей/скриптов) внутрь блока `build-remove` в `index.html`.
+2. При запуске сборки этот код будет удалён из production-версии.
+3. В dev-режиме (`npm run dev`) код будет работать как обычно.
+
+**Важно:** не используйте этот механизм для кода, который должен быть в production!
+
+---
+
+## Ключевые файлы и их назначение
+
+- **vite.config.js**Использует переменные из `.env` для гибкой настройки путей, портов, сборки и пр.
+- **generate-index-php.js**После сборки очищает `dist/index.html` от dev-скриптов и генерирует `dist/index.php` с нужным содержимым.
+- **upload-dist-sftp.js**Публикует папку `dist/` на сервер по SFTP, используя параметры из `.env`.
+- **src/main.js**
+  Пример использования переменной среды в клиентском коде:
+
+  ```js
+  document.querySelector(`#${import.meta.env.VITE_APPLICATION_ENTRY_POINT_HTML_ID}`).innerHTML = `...`;
+  ```
+
+---
+
+## Как использовать
+
+1. Скопируйте проект в новую папку.
+2. Отредактируйте `.env` под свои нужды (порты, пути, SFTP и т.д.).
+3. Установите зависимости:
+   ```
+   npm install
+   ```
+4. Запустите dev-сервер:
+   ```
+   npm run dev
+   ```
+5. Для сборки и генерации PHP-файла:
+   ```
+   npm run build
+   ```
+6. Для публикации на сервер:
+   ```
+   npm run publish:sftp
+   ```
+
+---
+
+## Рекомендации
+
+- Не храните секретные данные (пароли) в публичных репозиториях.
+- Для новых переменных среды, которые должны быть доступны в браузере, всегда добавляйте префикс `VITE_`.
+- Для сложных проектов расширяйте структуру папок в `src/` и `frameworks/`.
+
+---
+
+## Лицензия
+
+ISC
+Автор: Dmitry Anisimov

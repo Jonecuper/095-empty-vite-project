@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="./src/images/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vite App</title>
+</head>
+
+<body>
+  <div id="empty-vite-project"></div>
+
+  <!-- build-remove-start -->
+  <!-- то что ниже не будет включено в бандл -->
+  <script>
+    /**
+    * Добавляет указанные CSS-файлы в элемент <head> документа.
+    * @param {...string} urls - Список URL-адресов CSS-файлов для подключения.
+    * @return {void}
+    */
+    function includeCSS(...urls) {
+      urls.forEach(url => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = url;
+        document.head.appendChild(link);
+      });
+    }
+
+    /**
+     * Добавляет указанные JavaScript-файлы в элемент <head> документа.
+     * @param {...string} urls - Список URL-адресов JS-файлов для подключения.
+     * @return {void}
+     */
+    function includeJS(...urls) {
+      urls.forEach(url => {
+        const script = document.createElement('script');
+        script.src = url;
+        document.head.appendChild(script);
+      });
+    }
+
+    includeCSS('./frameworks/css/something.css');
+    includeJS('./frameworks/something.js');
+  </script>
+  <!-- build-remove-end -->
+  <script type="module" src="./src/main.js"></script>
+</body>
+
+</html>
